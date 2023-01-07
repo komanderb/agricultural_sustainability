@@ -3,6 +3,10 @@
 Created on Tue Nov  8 10:37:34 2022
 
 @author: Bjoern Komander 
+
+File to scrape the gaez data. As we only realized later that we need 
+Agro-Climatic potential yields for today, they are not included in the main function.
+# Also a different environment has been used. See dependencies for more info.
 """
 #%% libraries
 import pandas as pd
@@ -76,11 +80,43 @@ def link_scraper(crops):
 
 link_scraper(crop_names)
 
-#%% scrape current data
+#%% part two - only current data 
 
 """
-should be one link only 
+It is only one link (no different RCP's). Therefore new function
+                     
 """
+
+# directory to save data 
+file_dir = r"G:\Meine Ablage\agricultural_sustain\GAEZ_data\data\current_yields"
+water_supply = ["200a_yld.tif", "200b_yld.tif"]
+base_link = "https://s3.eu-west-1.amazonaws.com/data.gaezdev.aws.fao.org/res02/CRUTS32/Hist/8110H/"
+ # for selenium browser make download settings
+options = Options()
+options.add_experimental_option("prefs", {
+  "download.default_directory": file_dir,
+  "download.prompt_for_download": False,
+  "download.directory_upgrade": True,
+"safebrowsing.enabled": True
+})
+
+# open browser
+browser = webdriver.Chrome(ChromeDriverManager().install(), 
+                           chrome_options= options)
+
+for water in water_supply:
+    
+    for crop in crop_names:
+        
+        filename = crop + water 
+        
+        file_link = base_link  + filename 
+        
+        browser.get(file_link)
+
+
+# run 
+
                     
                     
                     
