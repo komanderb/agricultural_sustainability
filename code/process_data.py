@@ -5,6 +5,9 @@ Created on Thu Nov  3 09:52:28 2022
 @author: Bjoern Komander
 
 File to make unified database out of the different tifs
+We only realised after a while that current production and future yields 
+do not measure the same thing. Therefore only the last function is used to create 
+the data we use now, limited to future yields. 
 """
 
 #%% import relevant libraries
@@ -220,4 +223,75 @@ value_dic = value_df.set_index('gaez_code').to_dict()['price']
 out_dir = r"G:\Meine Ablage\agricultural_sustain\GAEZ_data\data"
 # run function / 
 merger_future(out_dir, name_dic, value_dic)
+
+#%% new approach for current data
+
+"""
+As current production and future potential yields do not seem to measure the 
+same thing: use potential yield with same assumptions of today...
+and multiply with current harvesting areas
+"""
+
+# 
+def merger_current(crop_dict):
+    base_dir = r"G:\Meine Ablage\agricultural_sustain\GAEZ_data\data\current_yields"
+    out_dir = r"G:\Meine Ablage\agricultural_sustain\GAEZ_data\data"
+    water_supply = ["irrigated", "rainfed"]
+    # read in harvesting area data
+    har_i = pd.read_csv(r"G:\Meine Ablage\agricultural_sustain\GAEZ_data\data\2010_I_har.csv")#, index_col = ['x', 'y'])
+    har_r = pd.read_csv(r"G:\Meine Ablage\agricultural_sustain\GAEZ_data\data\2010_R_har.csv")#, index_col = ['x', 'y'])
+    for water in water_supply:
+        if water == "irrigated":
+            expr = "200a_yld"
+            water_out = "I"
+            prd_df = har_i.drop(['spatial_ref', 'band'],axis = 1)
+        elif water == "rainfed":
+            expr = "200b_yld"
+            water_out = "R"
+            prd_df = har_r.drop(['spatial_ref', 'band'],axis = 1)
+            
+            
+        list_of_files = search_files(base_dir, expr)
+        for counter, file in enumerate(list_of_files):
+            if counter < 1: 
+                # open tifs into as array for each pixel
+                rds = rioxarray.open_rasterio(file)
+                # translate that to dataframe, name the value column according 
+                df = rds.to_dataframe(file[67:71])
+                
+            else:
+                rds = rioxarray.open_rasterio(file)
+                # left_join here 
+                df = df.join(rds.to_dataframe(file[67:71]), how = "left", rsuffix="DROP").filter(regex="^(?!.*DROP)")
+        
+        #replace missing values:
+        df.replace(-9, 0, inplace = True)
+        df = df.groupby(by=crop_dict,axis=1).mean()
+        # mean or median?
+        df.reset_index(inplace = True)
+        """
+        In order to match data for multiplication it is important 
+        to match index -> and in this case round 
+        """
+        df = df.round({'x': 6, 'y':6})
+        df.set_index(['x', 'y'], inplace = True)
+        # drop unneeded cols
+        df.drop('band', axis = 1, inplace = True)
+        # sort the cols for multipli?
+        df.sort_index(axis = 1, inplace = True)
+        
+        prd_df = prd_df.round({'x':6, 'y':6})
+        prd_df.set_index(['x', 'y'], inplace = True)
+        prd_df.sort_index(axis = 1, inplace = True)
+       
+        # multiply with harvesting area
+        df = df.mul(prd_df) 
+        
+        # normally write csv now, but to save memory skip next line
+        df.to_csv(out_dir + "/" + "current" +  "_prod_" + water_out + ".csv")
+        
+        
+#%% run 
+
+merger_current(name_dic)
 

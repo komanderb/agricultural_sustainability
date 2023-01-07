@@ -32,7 +32,6 @@ file_current = r"G:\Meine Ablage\agricultural_sustain\GAEZ_data\data\current_yie
 g_gdp = gdal.Open(file_gdp)
 g_curr = gdal.Open(file_current)
 
-
 #%% gdal warp 
 # out path
 out_tif = r"G:\Meine Ablage\agricultural_sustain\gdp\gridded_gdp\GDP2005.tif"
